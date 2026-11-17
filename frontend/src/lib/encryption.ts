@@ -41,7 +41,7 @@ export async function deriveKeyFromPassphrase(
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: saltBytes,
+      salt: saltBytes as unknown as BufferSource,
       iterations: 100000,
       hash: 'SHA-256',
     },
@@ -81,11 +81,11 @@ export async function encryptClientVault(
   const ciphertextWithTag = await window.crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv,
+      iv: iv as unknown as BufferSource,
       tagLength: 128, // 16 bytes tag
     },
     key,
-    encodedData
+    encodedData as unknown as BufferSource
   );
 
   const totalBytes = new Uint8Array(ciphertextWithTag);
@@ -127,11 +127,11 @@ export async function decryptClientVault<T = unknown>(
     const decryptedBuffer = await window.crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv: ivBytes,
+        iv: ivBytes as unknown as BufferSource,
         tagLength: 128,
       },
       key,
-      combined
+      combined as unknown as BufferSource
     );
 
     const decoder = new TextDecoder();

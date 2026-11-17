@@ -6,7 +6,8 @@ import clsx from 'clsx';
 import { Button } from './Button';
 
 export interface ModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
+  open?: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
@@ -14,6 +15,7 @@ export interface ModalProps {
   cancelText?: string;
   onConfirm?: () => void;
   variant?: 'primary' | 'error' | 'warning' | 'info';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | string;
   className?: string;
 }
 
@@ -26,6 +28,7 @@ const variantMap: Record<NonNullable<ModalProps['variant']>, NonNullable<React.C
 
 export function Modal({
   isOpen,
+  open,
   onClose,
   title,
   children,
@@ -33,20 +36,22 @@ export function Modal({
   cancelText = 'Cancel',
   onConfirm,
   variant = 'primary',
+  maxWidth = 'md',
   className,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const activeOpen = open ?? isOpen ?? false;
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (isOpen) {
+    if (activeOpen) {
       dialog.showModal();
     } else {
       dialog.close();
     }
-  }, [isOpen]);
+  }, [activeOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -57,9 +62,16 @@ export function Modal({
     return () => dialog.removeEventListener('close', handleClose);
   }, [onClose]);
 
+  const widthClass = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-2xl',
+  }[maxWidth] || maxWidth;
+
   return (
     <dialog ref={dialogRef} className={clsx('modal', className)}>
-      <div className="modal-box">
+      <div className={clsx('modal-box rounded-3xl', widthClass)}>
         <div className="flex items-center justify-between">
           {title && <h3 className="text-lg font-bold">{title}</h3>}
           <button

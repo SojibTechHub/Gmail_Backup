@@ -35,10 +35,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme(nextTheme);
   };
 
-  if (!mounted) {
-    return <div style={{ visibility: 'hidden' }}>{children}</div>;
-  }
-
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
       {children}
@@ -49,7 +45,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    return {
+      theme: 'mailvault-dark' as Theme,
+      toggleTheme: () => {},
+      setTheme: () => {},
+    };
   }
   return context;
 }

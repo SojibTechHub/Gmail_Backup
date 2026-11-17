@@ -75,6 +75,7 @@ export function RecoveryWizard({ initialAccountId, onFinish }: RecoveryWizardPro
     recoveryService
       .getReadiness(selectedAccountId)
       .then(async (report) => {
+        if (!report) return;
         setReadinessReport(report);
         if (report.availableMethods.length > 0) {
           setSelectedMethod(report.availableMethods[0]);
@@ -83,7 +84,7 @@ export function RecoveryWizard({ initialAccountId, onFinish }: RecoveryWizardPro
           const config = await recoveryService
             .getProviderDetails(report.provider)
             .catch(() => null);
-          setProviderConfig(config);
+          setProviderConfig(config || null);
         }
       })
       .catch((err) => {

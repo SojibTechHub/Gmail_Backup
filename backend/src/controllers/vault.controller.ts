@@ -17,7 +17,7 @@ export const getVault = asyncHandler(async (req: Request, res: Response) => {
 
   const vault = await vaultService.getVaultData(
     req.user!._id.toString(),
-    req.params.accountId,
+    req.params.accountId as string,
     ip,
     userAgent
   );
@@ -31,7 +31,7 @@ export const updateVault = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await vaultService.upsertVaultData(
     req.user!._id.toString(),
-    req.params.accountId,
+    req.params.accountId as string,
     req.body,
     ip,
     userAgent
@@ -46,7 +46,7 @@ export const deleteVault = asyncHandler(async (req: Request, res: Response) => {
 
   await vaultService.deleteVaultData(
     req.user!._id.toString(),
-    req.params.accountId,
+    req.params.accountId as string,
     ip,
     userAgent
   );

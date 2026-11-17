@@ -48,7 +48,7 @@ export const getSessions = asyncHandler(async (req: Request, res: Response) => {
 export const getSessionById = asyncHandler(async (req: Request, res: Response) => {
   const session = await recoveryService.getRecoverySessionById(
     req.user!._id.toString(),
-    req.params.id
+    req.params.id as string
   );
   res.status(200).json(formatResponse(true, 'Recovery session retrieved', { session }));
 });
@@ -59,7 +59,7 @@ export const updateSession = asyncHandler(async (req: Request, res: Response) =>
 
   const session = await recoveryService.updateRecoverySession(
     req.user!._id.toString(),
-    req.params.id,
+    req.params.id as string,
     req.body,
     ip,
     userAgent
@@ -82,7 +82,7 @@ export const getProviders = asyncHandler(async (_req: Request, res: Response) =>
 export const getReadiness = asyncHandler(async (req: Request, res: Response) => {
   const report = await recoveryService.calculateReadinessReport(
     req.user!._id.toString(),
-    req.params.accountId
+    req.params.accountId as string
   );
   res.status(200).json(formatResponse(true, 'Recovery readiness assessment report', report));
 });

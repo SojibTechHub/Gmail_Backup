@@ -47,7 +47,7 @@ export const getAccounts = asyncHandler(async (req: Request, res: Response) => {
 export const getAccountById = asyncHandler(async (req: Request, res: Response) => {
   const account = await accountService.getAccountById(
     req.user!._id.toString(),
-    req.params.id
+    req.params.id as string
   );
   res.status(200).json(formatResponse(true, 'Email account retrieved', { account }));
 });
@@ -58,7 +58,7 @@ export const updateAccount = asyncHandler(async (req: Request, res: Response) =>
 
   const account = await accountService.updateAccount(
     req.user!._id.toString(),
-    req.params.id,
+    req.params.id as string,
     req.body,
     ip,
     userAgent
@@ -73,7 +73,7 @@ export const deleteAccount = asyncHandler(async (req: Request, res: Response) =>
 
   await accountService.deleteAccount(
     req.user!._id.toString(),
-    req.params.id,
+    req.params.id as string,
     ip,
     userAgent
   );

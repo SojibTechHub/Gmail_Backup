@@ -52,6 +52,9 @@ export function VaultForm({ initialData, onSave, loading = false }: VaultFormPro
   const [backupCodesText, setBackupCodesText] = useState(
     initialData?.backupCodes?.join('\n') || ''
   );
+  const [appPasswordsText, setAppPasswordsText] = useState(
+    initialData?.appPasswords?.join('\n') || ''
+  );
   const [prevPasswordsText, setPrevPasswordsText] = useState(
     initialData?.previousPasswords?.join('\n') || ''
   );
@@ -65,6 +68,10 @@ export function VaultForm({ initialData, onSave, loading = false }: VaultFormPro
       const payload: VaultDecryptedData = {
         ...data,
         backupCodes: backupCodesText
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        appPasswords: appPasswordsText
           .split('\n')
           .map((s) => s.trim())
           .filter(Boolean),
@@ -119,22 +126,42 @@ export function VaultForm({ initialData, onSave, loading = false }: VaultFormPro
         </div>
       </div>
 
-      {/* Backup Codes */}
-      <div>
-        <label className="label text-xs font-semibold text-base-content/80 pb-1 flex items-center gap-1.5">
-          <KeyRound className="w-3.5 h-3.5 text-primary" />
-          <span>Emergency One-Time Backup Codes (One per line)</span>
-        </label>
-        <textarea
-          rows={4}
-          value={backupCodesText}
-          onChange={(e) => setBackupCodesText(e.target.value)}
-          placeholder={'8829-1920\n3829-1092\n4819-2091'}
-          className="textarea textarea-bordered w-full text-xs font-mono rounded-xl focus:border-primary"
-        />
-        <span className="text-[11px] text-base-content/50 mt-1 block">
-          Keep your 8 or 10-digit emergency backup codes stored encrypted for immediate recovery access.
-        </span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Backup Codes */}
+        <div>
+          <label className="label text-xs font-semibold text-base-content/80 pb-1 flex items-center gap-1.5">
+            <KeyRound className="w-3.5 h-3.5 text-primary" />
+            <span>2FA Backup Codes (One per line)</span>
+          </label>
+          <textarea
+            rows={4}
+            value={backupCodesText}
+            onChange={(e) => setBackupCodesText(e.target.value)}
+            placeholder={'8829-1920\n3829-1092\n4819-2091'}
+            className="textarea textarea-bordered w-full text-xs font-mono rounded-xl focus:border-primary"
+          />
+          <span className="text-[11px] text-base-content/50 mt-1 block">
+            Emergency 8 or 10-digit backup codes for bypass / recovery.
+          </span>
+        </div>
+
+        {/* App Passwords */}
+        <div>
+          <label className="label text-xs font-semibold text-base-content/80 pb-1 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-secondary" />
+            <span>Provider App Passwords (One per line)</span>
+          </label>
+          <textarea
+            rows={4}
+            value={appPasswordsText}
+            onChange={(e) => setAppPasswordsText(e.target.value)}
+            placeholder={'eijk srer wzft hbby\nabcd efgh ijkl mnop'}
+            className="textarea textarea-bordered w-full text-xs font-mono rounded-xl focus:border-primary"
+          />
+          <span className="text-[11px] text-base-content/50 mt-1 block">
+            16-character provider-generated app passwords for IMAP/SMTP services.
+          </span>
+        </div>
       </div>
 
       {/* Security Questions */}

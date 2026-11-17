@@ -40,6 +40,15 @@ const config = {
     from: process.env.EMAIL_FROM || 'noreply@mailvault.com',
   },
 
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || '',
+  },
+
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+  },
+
   encryption: {
     key: process.env.ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   },

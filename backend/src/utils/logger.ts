@@ -10,11 +10,14 @@ const redactSensitive = winston.format((info) => {
       redacted[field] = '[REDACTED]';
     }
   }
-  if (typeof redacted.message === 'string') {
+  const msg = redacted.message;
+  if (typeof msg === 'string') {
+    let replaced = msg;
     for (const field of SENSITIVE_FIELDS) {
       const regex = new RegExp(`"${field}"\\s*:\\s*"[^"]*"`, 'gi');
-      redacted.message = redacted.message.replace(regex, `"${field}":"[REDACTED]"`);
+      replaced = replaced.replace(regex, `"${field}":"[REDACTED]"`);
     }
+    redacted.message = replaced;
   }
   return redacted;
 });

@@ -48,7 +48,7 @@ export default function AccountDetailPage({ params }: { params: Promise<{ id: st
       .then(([acc, report]) => {
         if (isMounted) {
           setAccount(acc || null);
-          setReadinessReport(report);
+          setReadinessReport(report || null);
         }
       })
       .catch((err) => {

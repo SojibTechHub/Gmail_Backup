@@ -125,11 +125,17 @@ export interface VaultDecryptedData {
   recoveryEmail?: string;
   recoveryPhone?: string;
   backupCodes?: string[];
+  appPasswords?: string[];
   securityQuestions?: Array<{ question: string; answer: string }>;
   previousPasswords?: string[];
   authenticatorKey?: string;
   trustedDevices?: string[];
   notes?: string;
+  credentialHistory?: Array<{
+    timestamp: string;
+    changeType: string;
+    details: string;
+  }>;
 }
 
 export interface IRecoverySessionStep {

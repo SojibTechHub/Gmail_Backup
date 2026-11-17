@@ -28,13 +28,13 @@ export const getUsers = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
-  const userDetails = await adminService.getAdminUserById(req.params.id);
+  const userDetails = await adminService.getAdminUserById(req.params.id as string);
   res.status(200).json(formatResponse(true, 'User details retrieved', userDetails));
 });
 
 export const updateUserRole = asyncHandler(async (req: Request, res: Response) => {
   const { role } = req.body;
-  const updatedUser = await adminService.updateAdminUserRole(req.params.id, role as UserRole);
+  const updatedUser = await adminService.updateAdminUserRole(req.params.id as string, role as UserRole);
   res.status(200).json(formatResponse(true, 'User role updated', { user: updatedUser }));
 });
 
