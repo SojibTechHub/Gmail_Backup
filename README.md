@@ -1,4 +1,4 @@
-# MailVault – Universal Email Recovery & Security Platform
+# Gmail_Backup – MailVault: Universal Email Recovery & Security Platform
 
 **MailVault** is an enterprise-grade SaaS web platform engineered to help legitimate email account owners manage their recovery information, evaluate account recovery readiness, and restore access to their own or explicitly authorized email accounts through verified provider procedures.
 
