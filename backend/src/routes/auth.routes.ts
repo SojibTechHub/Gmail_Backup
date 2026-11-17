@@ -17,6 +17,7 @@ const router = Router();
 // Public routes
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/google', authLimiter, authController.loginWithGoogle);
 router.post('/logout', authController.logout);
 router.post('/verify-email', authLimiter, validate(verifyEmailSchema), authController.verifyEmail);
 router.post('/forgot-password', strictLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
@@ -32,6 +33,9 @@ router.post('/change-password', authenticate, validate(changePasswordSchema), au
 router.get('/sessions', authenticate, authController.getSessions);
 router.delete('/sessions/other', authenticate, authController.revokeOtherSessions);
 router.delete('/sessions/:id', authenticate, authController.revokeSession);
+
+// Account deletion (GDPR / User Purge)
+router.delete('/account', authenticate, authController.deleteAccount);
 
 // MFA routes
 router.post('/mfa/enable', authenticate, authController.enableMfa);

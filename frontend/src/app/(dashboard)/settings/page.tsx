@@ -15,6 +15,7 @@ import {
   EyeOff,
   CheckCircle,
   Copy,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import authService from '../../../services/auth.service';
@@ -44,7 +45,12 @@ const changePasswordSchema = z
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 export default function SettingsPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+
+  // Danger Zone delete state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Password change state
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -131,6 +137,19 @@ export default function SettingsPage() {
       await refreshUser();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to disable MFA');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await authService.deleteAccount(deletePassword || undefined);
+      toast.success('Your account and encrypted vaults have been permanently purged.');
+      logout();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -292,6 +311,28 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Danger Zone */}
+      <div className="card bg-base-100 border border-error/30 p-6 rounded-3xl shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-error flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Danger Zone: Delete Account
+            </h3>
+            <p className="text-xs text-base-content/60 mt-0.5">
+              Permanently purge your MailVault account, all associated email records, and zero-knowledge encrypted vaults. This action is irreversible.
+            </p>
+          </div>
+          <Button
+            variant="error"
+            size="sm"
+            onClick={() => setDeleteModalOpen(true)}
+            className="shrink-0 font-semibold"
+          >
+            Delete My Account
+          </Button>
+        </div>
+      </div>
+
       {/* MFA Setup Modal */}
       <Modal
         open={mfaModalOpen}
@@ -386,6 +427,51 @@ export default function SettingsPage() {
               </div>
             </>
           )}
+        </div>
+      </Modal>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Permanently Delete Account"
+        maxWidth="md"
+      >
+        <div className="space-y-4 py-2">
+          <div className="p-3.5 rounded-2xl bg-error/10 border border-error/20 text-xs text-error font-medium">
+            Warning: All registered email accounts, recovery history, and zero-knowledge encrypted vaults will be permanently purged from database and memory.
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-base-content/80">
+              Confirm your password to proceed:
+            </label>
+            <input
+              type="password"
+              placeholder="Your master password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="input input-bordered w-full rounded-xl text-xs mt-1"
+            />
+          </div>
+
+          <div className="modal-action">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDeleteModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              size="sm"
+              loading={deleteLoading}
+              onClick={handleDeleteAccount}
+            >
+              Permanently Purge Account
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

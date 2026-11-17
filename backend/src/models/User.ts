@@ -15,6 +15,7 @@ export interface IUserDocument extends Document {
   mfaSecret?: string;
   isMfaEnabled: boolean;
   mfaBackupCodes: string[];
+  googleId?: string;
   avatar?: string;
   lastLogin?: Date;
   loginAttempts: number;
@@ -65,6 +66,7 @@ const UserSchema = new Schema<IUserDocument>(
       type: [String],
       default: [],
     },
+    googleId: { type: String, index: true },
     avatar: { type: String },
     lastLogin: { type: Date },
     loginAttempts: {

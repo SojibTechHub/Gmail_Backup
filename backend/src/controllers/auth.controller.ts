@@ -247,3 +247,38 @@ export const revokeOtherSessions = asyncHandler(async (req: Request, res: Respon
   );
   res.status(200).json(formatResponse(true, 'Other sessions revoked', result));
 });
+
+export const loginWithGoogle = asyncHandler(async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const { credential } = req.body;
+
+  const result = await authService.loginWithGoogle(credential, ip, userAgent);
+
+  setTokenCookies(res, result.accessToken, result.refreshToken);
+
+  res.status(200).json(
+    formatResponse(true, 'Google authentication successful', {
+      user: result.user,
+      accessToken: result.accessToken,
+    })
+  );
+});
+
+export const deleteAccount = asyncHandler(async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const { passwordConfirm } = req.body;
+
+  const result = await authService.deleteUserAccount(
+    req.user!._id.toString(),
+    passwordConfirm,
+    ip,
+    userAgent
+  );
+
+  res.clearCookie('accessToken');
+  res.clearCookie('refreshToken');
+
+  res.status(200).json(formatResponse(true, result.message));
+});

@@ -107,6 +107,23 @@ export const authService = {
     const res = await apiClient.delete<ApiResponse>('/auth/sessions/other');
     return res.data;
   },
+
+  async loginWithGoogle(credential: string) {
+    const res = await apiClient.post<
+      ApiResponse<{
+        user: IUser;
+        accessToken: string;
+      }>
+    >('/auth/google', { credential });
+    return res.data;
+  },
+
+  async deleteAccount(passwordConfirm?: string) {
+    const res = await apiClient.delete<ApiResponse>('/auth/account', {
+      data: { passwordConfirm },
+    });
+    return res.data;
+  },
 };
 
 export default authService;

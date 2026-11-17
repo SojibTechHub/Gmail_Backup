@@ -2,7 +2,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
-import { User, UserSession } from '../models';
+import { User, UserSession, EmailAccount, RecoveryVault, RecoverySession } from '../models';
 import { UserRole, AuditAction, NotificationType } from '../types';
 import config from '../config';
 import { AppError } from '../middlewares';
@@ -599,4 +599,130 @@ export const revokeOtherSessions = async (userId: string, currentToken: string, 
   });
 
   return { success: true, revokedCount: result.modifiedCount };
+};
+
+export const loginWithGoogle = async (credential: string, ip: string, userAgent: string) => {
+  if (!credential) {
+    throw new AppError('Google credential token is required', 400);
+  }
+
+  let googleUser: { sub: string; email: string; name?: string; picture?: string; email_verified?: boolean };
+
+  try {
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    if (!res.ok) {
+      throw new AppError('Invalid Google credential token', 401);
+    }
+    googleUser = (await res.json()) as typeof googleUser;
+  } catch (err: unknown) {
+    if (err instanceof AppError) throw err;
+    throw new AppError('Failed to verify token with Google OAuth service', 401);
+  }
+
+  if (!googleUser.email) {
+    throw new AppError('Google profile did not provide an email address', 400);
+  }
+
+  let user = await User.findOne({
+    $or: [{ googleId: googleUser.sub }, { email: googleUser.email.toLowerCase() }],
+  });
+
+  if (!user) {
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    user = await User.create({
+      email: googleUser.email.toLowerCase(),
+      name: googleUser.name || 'Google User',
+      googleId: googleUser.sub,
+      avatar: googleUser.picture,
+      passwordHash: randomPassword,
+      isEmailVerified: true,
+      role: UserRole.USER,
+    });
+  } else {
+    if (!user.googleId) {
+      user.googleId = googleUser.sub;
+    }
+    if (!user.avatar && googleUser.picture) {
+      user.avatar = googleUser.picture;
+    }
+    user.isEmailVerified = true;
+    user.lastLogin = new Date();
+    await user.save();
+  }
+
+  const accessToken = generateAccessJWT(user._id.toString(), user.role);
+  const refreshToken = generateRefreshJWT(user._id.toString());
+  const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  user.refreshTokens.push({ token: hashToken(refreshToken), expiresAt: refreshExpiresAt });
+  await user.save();
+
+  await UserSession.create({
+    userId: user._id,
+    token: hashToken(accessToken),
+    userAgent,
+    ipAddress: ip,
+    expiresAt: refreshExpiresAt,
+  });
+
+  await logAuditEvent({
+    userId: user._id.toString(),
+    action: AuditAction.USER_LOGIN,
+    resource: 'User',
+    resourceId: user._id.toString(),
+    ipAddress: ip,
+    userAgent,
+    details: 'User logged in via Google OAuth 2.0',
+  });
+
+  return {
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+      isMfaEnabled: user.isMfaEnabled,
+      avatar: user.avatar,
+    },
+    accessToken,
+    refreshToken,
+  };
+};
+
+export const deleteUserAccount = async (
+  userId: string,
+  passwordConfirm: string | undefined,
+  ip: string,
+  userAgent: string
+) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError('User not found', 404);
+
+  if (user.passwordHash && passwordConfirm) {
+    const isMatch = await user.comparePassword(passwordConfirm);
+    if (!isMatch) {
+      throw new AppError('Incorrect password. Account deletion aborted.', 401);
+    }
+  }
+
+  await Promise.all([
+    EmailAccount.deleteMany({ userId }),
+    RecoveryVault.deleteMany({ userId }),
+    RecoverySession.deleteMany({ userId }),
+    UserSession.deleteMany({ userId }),
+    User.findByIdAndDelete(userId),
+  ]);
+
+  await logAuditEvent({
+    userId,
+    action: AuditAction.USER_DELETE,
+    resource: 'User',
+    resourceId: userId,
+    ipAddress: ip,
+    userAgent,
+    details: `User permanently deleted account ${user.email}`,
+  });
+
+  return { success: true, message: 'Account and all associated vaults permanently purged' };
 };
