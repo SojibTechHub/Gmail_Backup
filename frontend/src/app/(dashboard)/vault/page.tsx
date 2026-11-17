@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Lock, Shield, KeyRound, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Lock, Shield, KeyRound, AlertTriangle, RefreshCw, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import accountService from '../../../services/account.service';
 import vaultService from '../../../services/vault.service';
@@ -11,6 +11,7 @@ import { encryptClientVault, decryptClientVault } from '../../../lib/encryption'
 import { VaultStatus } from '../../../components/vault/VaultStatus';
 import { VaultUnlock } from '../../../components/vault/VaultUnlock';
 import { VaultForm } from '../../../components/vault/VaultForm';
+import { EmergencyKitModal } from '../../../components/vault/EmergencyKitModal';
 import { ProviderIcon } from '../../../components/accounts/ProviderIcon';
 import { Button } from '../../../components/ui/Button';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
@@ -27,6 +28,7 @@ function VaultPageContent() {
   const [unlocked, setUnlocked] = useState(false);
   const [activePassphrase, setActivePassphrase] = useState<string | null>(null);
   const [decryptedData, setDecryptedData] = useState<VaultDecryptedData | null>(null);
+  const [emergencyKitOpen, setEmergencyKitOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [vaultLoading, setVaultLoading] = useState(false);
@@ -155,9 +157,19 @@ function VaultPageContent() {
         </div>
 
         {unlocked && (
-          <Button variant="error" size="sm" onClick={handleLock} leftIcon={Lock}>
-            Lock Vault Now
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setEmergencyKitOpen(true)}
+              leftIcon={Printer}
+            >
+              Emergency Kit
+            </Button>
+            <Button variant="error" size="sm" onClick={handleLock} leftIcon={Lock}>
+              Lock Vault
+            </Button>
+          </div>
         )}
       </div>
 
@@ -219,6 +231,14 @@ function VaultPageContent() {
           <VaultForm initialData={decryptedData || undefined} onSave={handleSave} />
         </div>
       )}
+
+      {/* Emergency Kit Modal */}
+      <EmergencyKitModal
+        isOpen={emergencyKitOpen}
+        onClose={() => setEmergencyKitOpen(false)}
+        account={selectedAccount}
+        vaultData={decryptedData}
+      />
     </div>
   );
 }
