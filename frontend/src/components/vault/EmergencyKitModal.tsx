@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
-import { Shield, Printer, Download, AlertTriangle, Lock } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Shield, Printer, Download, Upload, AlertTriangle, Lock } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { IEmailAccount, VaultDecryptedData } from '../../types';
@@ -11,6 +12,7 @@ interface EmergencyKitModalProps {
   onClose: () => void;
   account?: IEmailAccount;
   vaultData?: VaultDecryptedData | null;
+  onRestore?: (data: VaultDecryptedData) => void;
 }
 
 export function EmergencyKitModal({
@@ -18,7 +20,10 @@ export function EmergencyKitModal({
   onClose,
   account,
   vaultData,
+  onRestore,
 }: EmergencyKitModalProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!account || !vaultData) return null;
 
   const handlePrint = () => {
@@ -55,6 +60,41 @@ export function EmergencyKitModal({
     URL.revokeObjectURL(url);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (json.title !== 'MailVault Emergency Recovery Backup') {
+          toast.error('Invalid backup file format');
+          return;
+        }
+
+        const restored: VaultDecryptedData = {
+          recoveryEmail: json.recoveryContacts?.recoveryEmail || undefined,
+          recoveryPhone: json.recoveryContacts?.recoveryPhone || undefined,
+          backupCodes: Array.isArray(json.backupCodes) ? json.backupCodes : [],
+          appPasswords: Array.isArray(json.appPasswords) ? json.appPasswords : [],
+          previousPasswords: Array.isArray(json.previousPasswords) ? json.previousPasswords : [],
+          notes: typeof json.notes === 'string' ? json.notes : undefined,
+        };
+
+        if (onRestore) {
+          onRestore(restored);
+          toast.success('Backup file parsed and loaded into Vault form! Click Save to encrypt.');
+          onClose();
+        }
+      } catch {
+        toast.error('Corrupted or invalid JSON backup file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <Modal
       open={isOpen}
@@ -63,6 +103,15 @@ export function EmergencyKitModal({
       maxWidth="lg"
     >
       <div className="space-y-6">
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept=".json,application/json"
+          className="hidden"
+        />
+
         {/* Notice */}
         <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500 print:hidden">
           <AlertTriangle className="w-5 h-5 shrink-0" />
@@ -196,28 +245,40 @@ export function EmergencyKitModal({
         </div>
 
         {/* Modal Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-base-300 print:hidden">
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            Close
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-base-300 print:hidden">
           <Button
             variant="ghost"
             size="sm"
-            leftIcon={Download}
-            onClick={handleDownloadJson}
-            className="border border-base-300"
+            leftIcon={Upload}
+            onClick={() => fileInputRef.current?.click()}
+            className="border border-base-300 w-full sm:w-auto"
           >
-            Download Backup JSON
+            Import / Restore JSON
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={Printer}
-            onClick={handlePrint}
-            className="shadow-md"
-          >
-            Print Emergency Sheet
-          </Button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={Download}
+              onClick={handleDownloadJson}
+              className="border border-base-300"
+            >
+              Export JSON
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={Printer}
+              onClick={handlePrint}
+              className="shadow-md"
+            >
+              Print Sheet
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

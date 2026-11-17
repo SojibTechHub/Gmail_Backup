@@ -217,3 +217,101 @@ export const getUserDashboardStats = async (userId: string) => {
     recentActivities,
   };
 };
+
+export const getSecurityHealth = async (userId: string) => {
+  const accounts = await EmailAccount.find({ userId }).lean();
+  const total = accounts.length;
+
+  if (total === 0) {
+    return {
+      overallHealthScore: 100,
+      grade: 'A',
+      staleAccountsCount: 0,
+      vulnerableAccountsCount: 0,
+      actionItems: [
+        {
+          id: 'add-account',
+          severity: 'info',
+          title: 'Register your primary email accounts',
+          description: 'Add your Gmail, Outlook, or Yahoo accounts to assess recovery readiness.',
+          accountId: null,
+          email: '',
+        },
+      ],
+    };
+  }
+
+  const now = Date.now();
+  const sixMonthsAgo = now - 180 * 24 * 60 * 60 * 1000;
+
+  let totalScore = 0;
+  let staleCount = 0;
+  let vulnerableCount = 0;
+  const actionItems: Array<{
+    id: string;
+    severity: 'critical' | 'warning' | 'info';
+    title: string;
+    description: string;
+    accountId: string;
+    email: string;
+  }> = [];
+
+  for (const acc of accounts) {
+    const accScore = Math.round(
+      ([acc.hasRecoveryEmail, acc.hasRecoveryPhone, acc.has2FA, acc.hasBackupCodes].filter(Boolean).length / 4) * 100
+    );
+    totalScore += accScore;
+
+    const isStale = new Date((acc as unknown as { updatedAt: Date }).updatedAt).getTime() < sixMonthsAgo;
+    if (isStale) {
+      staleCount++;
+      actionItems.push({
+        id: `stale-${acc._id}`,
+        severity: 'warning',
+        title: `Verification Overdue: ${acc.email}`,
+        description: 'Recovery information has not been reviewed or confirmed in over 6 months.',
+        accountId: acc._id.toString(),
+        email: acc.email,
+      });
+    }
+
+    if (accScore < 50 || !acc.has2FA || !acc.hasBackupCodes) {
+      vulnerableCount++;
+      if (!acc.hasBackupCodes) {
+        actionItems.push({
+          id: `codes-${acc._id}`,
+          severity: 'critical',
+          title: `Missing 2FA Backup Codes: ${acc.email}`,
+          description: 'No emergency two-factor backup codes are stored. You risk lockout if your phone is lost.',
+          accountId: acc._id.toString(),
+          email: acc.email,
+        });
+      }
+      if (!acc.hasRecoveryPhone && !acc.hasRecoveryEmail) {
+        actionItems.push({
+          id: `contact-${acc._id}`,
+          severity: 'critical',
+          title: `No Secondary Recovery Contacts: ${acc.email}`,
+          description: 'Neither a recovery email nor a recovery phone number has been linked.',
+          accountId: acc._id.toString(),
+          email: acc.email,
+        });
+      }
+    }
+  }
+
+  const avgScore = Math.round(totalScore / total);
+  let grade = 'A';
+  if (avgScore < 50) grade = 'F';
+  else if (avgScore < 70) grade = 'C';
+  else if (avgScore < 85) grade = 'B';
+
+  return {
+    overallHealthScore: avgScore,
+    grade,
+    totalAccounts: total,
+    staleAccountsCount: staleCount,
+    vulnerableAccountsCount: vulnerableCount,
+    actionItems: actionItems.slice(0, 10),
+  };
+};

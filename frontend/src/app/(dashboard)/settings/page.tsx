@@ -22,6 +22,7 @@ import { Button } from '../../../components/ui/Button';
 import { ThemeToggle } from '../../../components/ui/ThemeToggle';
 import { Modal } from '../../../components/ui/Modal';
 import { PasswordStrength } from '../../../components/auth/PasswordStrength';
+import { DeviceSessionManager } from '../../../components/settings/DeviceSessionManager';
 
 const changePasswordSchema = z
   .object({
@@ -273,6 +274,9 @@ export default function SettingsPage() {
           </Button>
         </form>
       </div>
+
+      {/* Device & Session Management */}
+      <DeviceSessionManager />
 
       {/* Preferences & Appearance Card */}
       <div className="card bg-base-100 border border-base-300 p-6 rounded-3xl shadow-sm space-y-4">

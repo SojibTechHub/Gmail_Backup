@@ -238,6 +238,7 @@ function VaultPageContent() {
         onClose={() => setEmergencyKitOpen(false)}
         account={selectedAccount}
         vaultData={decryptedData}
+        onRestore={(data) => setDecryptedData(data)}
       />
     </div>
   );

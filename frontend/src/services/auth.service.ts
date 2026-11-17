@@ -82,6 +82,31 @@ export const authService = {
     const res = await apiClient.patch<ApiResponse<{ user: IUser }>>('/auth/profile', data);
     return res.data.data?.user;
   },
+
+  async getSessions() {
+    const res = await apiClient.get<
+      ApiResponse<{
+        sessions: Array<{
+          id: string;
+          ipAddress: string;
+          userAgent: string;
+          createdAt: string;
+          isCurrent: boolean;
+        }>;
+      }>
+    >('/auth/sessions');
+    return res.data.data?.sessions || [];
+  },
+
+  async revokeSession(sessionId: string) {
+    const res = await apiClient.delete<ApiResponse>(`/auth/sessions/${sessionId}`);
+    return res.data;
+  },
+
+  async revokeOtherSessions() {
+    const res = await apiClient.delete<ApiResponse>('/auth/sessions/other');
+    return res.data;
+  },
 };
 
 export default authService;

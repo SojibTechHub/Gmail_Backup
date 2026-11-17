@@ -6,7 +6,7 @@ import { User, UserSession } from '../models';
 import { UserRole, AuditAction, NotificationType } from '../types';
 import config from '../config';
 import { AppError } from '../middlewares';
-import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail } from '../utils';
+import { generateToken, hashToken, sendVerificationEmail, sendPasswordResetEmail, sendSecurityAlert } from '../utils';
 import { logAuditEvent } from './audit.service';
 import { createNotification } from './notification.service';
 
@@ -77,6 +77,36 @@ export const register = async (
   await user.save();
 
   // Create UserSession
+  // Suspicious Activity Detection: check if IP or device is new
+  try {
+    const priorSessions = await UserSession.find({ userId: user._id, isValid: true })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    if (priorSessions.length > 0) {
+      const knownIps = new Set(priorSessions.map((s) => s.ipAddress));
+      const knownAgents = new Set(priorSessions.map((s) => s.userAgent));
+      const isNewIp = ip && !knownIps.has(ip);
+      const isNewAgent = userAgent && !knownAgents.has(userAgent);
+
+      if (isNewIp || isNewAgent) {
+        await createNotification(
+          user._id.toString(),
+          NotificationType.SECURITY_ALERT,
+          'New Device / Location Sign-in',
+          `Sign-in detected from ${ip || 'unknown IP'} (${userAgent?.slice(0, 40) || 'unknown browser'}). If this wasn't you, review your active sessions.`
+        );
+
+        sendSecurityAlert(
+          user.email,
+          `We detected a sign-in to your MailVault account from an unfamiliar device or IP address:\nIP: ${ip}\nDevice: ${userAgent}\nTime: ${new Date().toUTCString()}\n\nIf you did not authorize this, please change your password immediately and revoke other active sessions from your Security Settings.`
+        ).catch(() => {});
+      }
+    }
+  } catch {
+    // Non-blocking security check
+  }
+
   await UserSession.create({
     userId: user._id,
     token: hashToken(accessToken),
@@ -172,6 +202,36 @@ export const login = async (
   const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   user.refreshTokens.push({ token: hashToken(refreshToken), expiresAt: refreshExpiresAt });
   await user.save();
+
+  // Suspicious Activity Detection: check if IP or device is new
+  try {
+    const priorSessions = await UserSession.find({ userId: user._id, isValid: true })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    if (priorSessions.length > 0) {
+      const knownIps = new Set(priorSessions.map((s) => s.ipAddress));
+      const knownAgents = new Set(priorSessions.map((s) => s.userAgent));
+      const isNewIp = ip && !knownIps.has(ip);
+      const isNewAgent = userAgent && !knownAgents.has(userAgent);
+
+      if (isNewIp || isNewAgent) {
+        await createNotification(
+          user._id.toString(),
+          NotificationType.SECURITY_ALERT,
+          'New Device / Location Sign-in',
+          `Sign-in detected from ${ip || 'unknown IP'} (${userAgent?.slice(0, 40) || 'unknown browser'}). If this wasn't you, review your active sessions.`
+        );
+
+        sendSecurityAlert(
+          user.email,
+          `We detected a sign-in to your MailVault account from an unfamiliar device or IP address:\nIP: ${ip}\nDevice: ${userAgent}\nTime: ${new Date().toUTCString()}\n\nIf you did not authorize this, please change your password immediately and revoke other active sessions from your Security Settings.`
+        ).catch(() => {});
+      }
+    }
+  } catch {
+    // Non-blocking security check
+  }
 
   await UserSession.create({
     userId: user._id,
@@ -480,4 +540,63 @@ export const updateProfile = async (
   });
 
   return user;
+};
+
+export const getActiveSessions = async (userId: string, currentToken?: string) => {
+  const sessions = await UserSession.find({ userId, isValid: true })
+    .sort({ createdAt: -1 })
+    .limit(20);
+
+  const currentHashed = currentToken ? hashToken(currentToken) : null;
+
+  return sessions.map((s) => ({
+    id: s._id.toString(),
+    ipAddress: s.ipAddress,
+    userAgent: s.userAgent,
+    createdAt: (s as unknown as { createdAt: Date }).createdAt,
+    isCurrent: currentHashed ? s.token === currentHashed : false,
+  }));
+};
+
+export const revokeSession = async (userId: string, sessionId: string, ip: string, userAgent: string) => {
+  const session = await UserSession.findOneAndUpdate(
+    { _id: sessionId, userId },
+    { isValid: false },
+    { new: true }
+  );
+  if (!session) throw new AppError('Session not found', 404);
+
+  await logAuditEvent({
+    userId,
+    action: AuditAction.USER_LOGOUT,
+    resource: 'UserSession',
+    resourceId: sessionId,
+    ipAddress: ip,
+    userAgent,
+    details: 'Remote session revoked by user',
+  });
+
+  return { success: true, message: 'Session revoked successfully' };
+};
+
+export const revokeOtherSessions = async (userId: string, currentToken: string, ip: string, userAgent: string) => {
+  const currentHashed = currentToken ? hashToken(currentToken) : null;
+  const filter: Record<string, unknown> = { userId, isValid: true };
+  if (currentHashed) {
+    filter.token = { $ne: currentHashed };
+  }
+
+  const result = await UserSession.updateMany(filter, { isValid: false });
+
+  await logAuditEvent({
+    userId,
+    action: AuditAction.USER_LOGOUT,
+    resource: 'UserSession',
+    resourceId: userId,
+    ipAddress: ip,
+    userAgent,
+    details: `Revoked ${result.modifiedCount} other active sessions`,
+  });
+
+  return { success: true, revokedCount: result.modifiedCount };
 };

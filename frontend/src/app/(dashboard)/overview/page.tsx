@@ -9,6 +9,7 @@ import { ReadinessChart } from '../../../components/dashboard/ReadinessChart';
 import { RecentActivities } from '../../../components/dashboard/RecentActivities';
 import { QuickActions } from '../../../components/dashboard/QuickActions';
 import { SecurityAlerts } from '../../../components/dashboard/SecurityAlerts';
+import { SecurityHealthCard } from '../../../components/dashboard/SecurityHealthCard';
 import { Skeleton } from '../../../components/ui/Skeleton';
 
 export default function OverviewPage() {
@@ -47,6 +48,8 @@ export default function OverviewPage() {
       )}
 
       <QuickActions />
+
+      <SecurityHealthCard />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5">

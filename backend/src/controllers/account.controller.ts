@@ -85,3 +85,8 @@ export const getDashboardStats = asyncHandler(async (req: Request, res: Response
   const stats = await accountService.getUserDashboardStats(req.user!._id.toString());
   res.status(200).json(formatResponse(true, 'Dashboard stats retrieved', stats));
 });
+
+export const getSecurityHealth = asyncHandler(async (req: Request, res: Response) => {
+  const health = await accountService.getSecurityHealth(req.user!._id.toString());
+  res.status(200).json(formatResponse(true, 'Security health retrieved', health));
+});

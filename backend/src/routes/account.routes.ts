@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/stats', accountController.getDashboardStats);
+router.get('/health-monitor', accountController.getSecurityHealth);
 router.get('/', accountController.getAccounts);
 router.post('/', validate(createAccountSchema), accountController.createAccount);
 router.get('/:id', accountController.getAccountById);

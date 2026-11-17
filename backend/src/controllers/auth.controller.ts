@@ -216,3 +216,34 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
 
   res.status(200).json(formatResponse(true, 'Profile updated successfully', { user: updated }));
 });
+
+export const getSessions = asyncHandler(async (req: Request, res: Response) => {
+  const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1] || '';
+  const sessions = await authService.getActiveSessions(req.user!._id.toString(), token);
+  res.status(200).json(formatResponse(true, 'Active sessions retrieved', { sessions }));
+});
+
+export const revokeSession = asyncHandler(async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const result = await authService.revokeSession(
+    req.user!._id.toString(),
+    req.params.id as string,
+    ip,
+    userAgent
+  );
+  res.status(200).json(formatResponse(true, result.message));
+});
+
+export const revokeOtherSessions = asyncHandler(async (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const token = req.cookies?.accessToken || req.headers.authorization?.split(' ')[1] || '';
+  const result = await authService.revokeOtherSessions(
+    req.user!._id.toString(),
+    token,
+    ip,
+    userAgent
+  );
+  res.status(200).json(formatResponse(true, 'Other sessions revoked', result));
+});

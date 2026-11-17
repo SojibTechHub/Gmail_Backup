@@ -31,6 +31,49 @@ const buttonStyles = `
   margin: 16px 0;
 `;
 
+const dispatchEmail = async (to: string, subject: string, html: string): Promise<void> => {
+  // 1. Try Resend API if API key exists
+  if (config.resend.apiKey) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.resend.apiKey}`,
+        },
+        body: JSON.stringify({
+          from: `MailVault <${config.email.from}>`,
+          to: [to],
+          subject,
+          html,
+        }),
+      });
+
+      if (response.ok) {
+        logger.info(`Email successfully dispatched via Resend API to ${to}`);
+        return;
+      }
+      logger.warn(`Resend API returned status ${response.status}, falling back to SMTP...`);
+    } catch (resendError) {
+      logger.warn('Resend API dispatch error, falling back to SMTP:', resendError);
+    }
+  }
+
+  // 2. Fallback to Nodemailer SMTP
+  try {
+    await transporter.sendMail({
+      from: `"MailVault" <${config.email.from}>`,
+      to,
+      subject,
+      html,
+    });
+    logger.info(`Email successfully sent via SMTP to ${to}`);
+  } catch (smtpError) {
+    logger.error('Failed to send email via SMTP transport:', smtpError);
+    throw smtpError;
+  }
+};
+
 export const sendVerificationEmail = async (to: string, token: string): Promise<void> => {
   const verificationUrl = `${config.cors.origin}/verify-email?token=${token}`;
 
@@ -58,13 +101,7 @@ export const sendVerificationEmail = async (to: string, token: string): Promise<
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"MailVault" <${config.email.from}>`,
-      to,
-      subject: 'Verify Your Email - MailVault',
-      html,
-    });
-    logger.info(`Verification email sent to ${to}`);
+    await dispatchEmail(to, 'Verify Your Email - MailVault', html);
   } catch (error) {
     logger.error('Failed to send verification email:', error);
     throw error;
@@ -98,13 +135,7 @@ export const sendPasswordResetEmail = async (to: string, token: string): Promise
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"MailVault" <${config.email.from}>`,
-      to,
-      subject: 'Password Reset - MailVault',
-      html,
-    });
-    logger.info(`Password reset email sent to ${to}`);
+    await dispatchEmail(to, 'Password Reset - MailVault', html);
   } catch (error) {
     logger.error('Failed to send password reset email:', error);
     throw error;
@@ -130,13 +161,7 @@ export const sendSecurityAlert = async (to: string, message: string): Promise<vo
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"MailVault Security" <${config.email.from}>`,
-      to,
-      subject: '⚠️ Security Alert - MailVault',
-      html,
-    });
-    logger.info(`Security alert email sent to ${to}`);
+    await dispatchEmail(to, '⚠️ Security Alert - MailVault', html);
   } catch (error) {
     logger.error('Failed to send security alert email:', error);
     throw error;

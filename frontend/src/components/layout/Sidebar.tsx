@@ -18,6 +18,8 @@ import {
   FileText,
   Sliders,
   X,
+  CreditCard,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import clsx from 'clsx';
@@ -47,6 +49,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   ];
 
   const accountLinks = [
+    { href: '/pricing', label: 'Plans & Pricing', icon: CreditCard },
+    { href: '/help', label: 'Help & Knowledge Base', icon: HelpCircle },
     { href: '/settings', label: 'Settings', icon: Settings },
     { href: '/profile', label: 'Profile', icon: User },
   ];

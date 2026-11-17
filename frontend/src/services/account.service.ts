@@ -43,6 +43,27 @@ export const accountService = {
     const res = await apiClient.get<ApiResponse<UserDashboardStats>>('/accounts/stats');
     return res.data.data;
   },
+
+  async getSecurityHealth() {
+    const res = await apiClient.get<
+      ApiResponse<{
+        overallHealthScore: number;
+        grade: string;
+        totalAccounts: number;
+        staleAccountsCount: number;
+        vulnerableAccountsCount: number;
+        actionItems: Array<{
+          id: string;
+          severity: 'critical' | 'warning' | 'info';
+          title: string;
+          description: string;
+          accountId: string | null;
+          email: string;
+        }>;
+      }>
+    >('/accounts/health-monitor');
+    return res.data.data;
+  },
 };
 
 export default accountService;

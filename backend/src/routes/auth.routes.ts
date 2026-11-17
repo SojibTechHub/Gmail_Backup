@@ -28,6 +28,11 @@ router.get('/me', authenticate, authController.getMe);
 router.patch('/profile', authenticate, validate(updateProfileSchema), authController.updateProfile);
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
 
+// Session & Device Management
+router.get('/sessions', authenticate, authController.getSessions);
+router.delete('/sessions/other', authenticate, authController.revokeOtherSessions);
+router.delete('/sessions/:id', authenticate, authController.revokeSession);
+
 // MFA routes
 router.post('/mfa/enable', authenticate, authController.enableMfa);
 router.post('/mfa/verify', authenticate, validate(verifyMfaSchema), authController.verifyMfa);
